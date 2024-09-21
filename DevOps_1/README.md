@@ -39,4 +39,86 @@
 > [!NOTE]
 > так как данная процедура может занять >2 месяцев, то выполним работу с помощью локальных доменов и если повезёт, позже дополним работу кейсом с нелокальными доменами
 
+## Проекты
+На просторах **GitHub** был найден [репозиторий](https://github.com/bradtraversy/50projects50days) с 50 проектами, доступными к использованию и распространению, возьмём два из них.
+- Создадим папку по пути `/var/www/github_profiles.com` для первого проекта и `/var/www/insect-catch-game.com` для второго.
+- Создадим необходимые для проектов файлы, для их изменения применим `chmod`. Заранее создадим папки `static` для создания `alias`-ов.
+![](img/Screenshot%20from%202024-09-21%2020-00-43.png)
+![](img/Pasted%20image%2020240921201654.png)
+## Сертификаты
+Воспользуемся туториалом [отсюда](https://www.8host.com/blog/sozdanie-samopodpisannogo-ssl-sertifikata-dlya-nginx-v-ubuntu-18-04/) и создадим самоподписанный ssl сертификат для `https` соединения.
+- Создадим пару ключ-сертификат с помощью утилиты `openssl`, где `-x509` указывает на то, что ключ самоподписывается, `-nodes` - на отсутствие пароля:
+```
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout \
+/etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt
+```
+- После ответа на вопросы, введём команду для поддержки PFS, которую требует `openssl`: `sudo openssl dhparam -dsaparam -out /etc/nginx/dhparam.pem 4096`
+- Создаём сниппет, который укажет на местоположение ключа и сертификата: `sudo gedit /etc/nginx/snippets/self-signed.conf`
+Содержимое сниппета:
+```
+ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+```
+- Для настройки протокола ssl нужен еще один сниппет, создадим и его: `sudo gedit /etc/nginx/snippets/ssl-params.conf`
+Содержимое сниппета:
+```
+ssl_protocols TLSv1.2;   
+ssl_prefer_server_ciphers on;   
+ssl_dhparam /etc/nginx/dhparam.pem;   
+ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;   
+ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0   
+ssl_session_timeout  10m;   
+ssl_session_cache shared:SSL:10m;   
+ssl_session_tickets off; # Requires nginx >= 1.5.9   
+ssl_stapling off; # Requires nginx >= 1.3.7   
+ssl_stapling_verify off; # Requires nginx => 1.3.7   
+resolver 8.8.8.8 8.8.4.4 valid=300s;   
+resolver_timeout 5s;   
+# Disable strict transport security for now. You can uncomment the following   
+# line if you understand the implications.   
+# add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"; add_header X-Frame-Options DENY;   
+add_header X-Content-Type-Options nosniff;   
+add_header X-XSS-Protection "1; mode=block";
+```
 ## Настройка nginx
+- Создадим конфиги для nginx под каждый проект с помощью дефолтного конфига nginx -
+```
+sudo cp /etc/nginx/sites-available/default \
+/etc/nginx/conf.d/<github_profiles or insect-catch-game>.conf
+```
+### Принудительное перенаправление трафика с http на https
+Чтобы при попытке подключиться по http производился редирект на https, добавим в конфиги следующее:
+```
+server {
+	listen 80;
+	listen [::]:80;
+	server_name github_profiles.com;
+	return 301 https://$server_name$request_uri;
+
+}
+
+server {
+
+    listen 443 ssl;
+	listen [::]:443 ssl;
+	include snippets/self-signed.conf;
+	include snippets/ssl-params.conf;
+    server_name github_profiles.com;
+    index index.html;
+    root /var/www/github_profiles.com;
+}
+
+
+```
+
+![](img/Pasted%20image%2020240922002449.png)
+### Ничего не получилос..
+Было удачно забыто, что используется ***ЛОКАЛЬНЫЙ*** хост..
+Исправим ошибку добавлением строчки с ip хоста и локальным доменом в `/etc/hosts`: `127.0.0.1       github_profiles.com`.
+Показалось, что ничего не поменялось, но чистка кеша дала свои плоды:
+![](img/Pasted%20image%2020240922004944.png)
+***WIN WIN WIN !!!***
+Соединение незащищено, приложение не работает, но оно хотя бы доступно)
+*Upd: приложение заработало после небольших корректировок в `index.html`:
+![](img/Pasted%20image%2020240922024705.png)
+### Добавление сертификата в браузер
