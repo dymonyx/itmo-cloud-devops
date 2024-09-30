@@ -42,19 +42,19 @@
 ## Проекты
 На просторах **GitHub** был найден [репозиторий](https://github.com/bradtraversy/50projects50days) с 50 проектами, доступными к использованию и распространению, возьмём два из них.
 - Создадим папку по пути `/var/www/github_profiles.com` для первого проекта и `/var/www/insect-catch-game.com` для второго.
-- Создадим необходимые для проектов файлы, для их изменения применим `chmod`. 
+- Перенесём необходимые для проектов файлы.
 ![](img/Screenshot%20from%202024-09-21%2020-00-43.png)
 ![](img/Pasted%20image%2020240921201654.png)
 ## Сертификаты attempt 1 (неудачно)
 Воспользуемся туториалом [отсюда](https://www.8host.com/blog/sozdanie-samopodpisannogo-ssl-sertifikata-dlya-nginx-v-ubuntu-18-04/) и создадим самоподписанный `ssl` сертификат для `https` соединения.
-- Создадим пару ключ-сертификат с помощью утилиты `openssl`, где `-x509` указывает на то, что ключ самоподписывается, `-nodes` - на отсутствие пароля:
+- Создадим ключ и сертификат с помощью утилиты `openssl`, где `-x509` указывает на то, что ключ самоподписывается, `-nodes` - на отсутствие пароля:
 ```
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout \
 /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt
 ```
 - После ответа на вопросы, снегерируем `dhparam` для повышения безопасности: `sudo openssl dhparam -dsaparam -out /etc/nginx/dhparam.pem 4096`
 - Создаём сниппет, который укажет на местоположение ключа и сертификата: `sudo gedit /etc/nginx/snippets/self-signed.conf`
-Содержимое сниппета:
+- Содержимое сниппета:
 ```
 ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
 ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
@@ -133,7 +133,7 @@ server {
 ### Добавление сертификата в браузер
 
 > [!NOTE] 
-> Почему-то после добавление сертификата в браузер и тонны попыток все-таки сделать сертификат доверенным не увенчались успехом, поэтому попробуем пойти другим путём
+> Почему-то после добавления сертификата в браузер и тонны попыток всё починить браузер так и не стал считать сертификат доверенным => `https` соединения не случилось, поэтому попробуем пойти другим путём
 
 ## Сертификаты, attempt 2 (удачно)
 Попробуем действовать по [этой](https://serveradmin.ru/vypusk-i-ispolzovanie-v-nginx-samopodpisannogo-tls-sertifikata/) инструкции:
