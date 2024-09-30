@@ -194,7 +194,9 @@ server {
 	ssl_certificate /etc/nginx/certs/github_profiles.com.crt;
     ssl_certificate_key /etc/nginx/certs/github_profiles.com.key;
     ssl_dhparam /etc/ssl/certs/dhparam.pem;
-    server_name github_profiles.com; 
+    server_name github_profiles.com;
+    index index.html;
+    root /var/www/github_profiles.com; 
 }
 ```
 7. Добавляем `myCA.crt` в доверенные сертификаты браузера, перезагружаем `nginx` и..
