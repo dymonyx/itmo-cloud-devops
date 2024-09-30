@@ -227,7 +227,7 @@ location / {
 *Upd: оказалось, что при чистке кэша, проекты перестают работать, потому что `nginx` не может интерпретировать относительный путь до скрипта из `index.html`, который лежит не в папке `static`, а в подпапке, где лежит папка `static` (то есть выше по пути). Фиксится эта ошибка добавлением ещё одного `alias`'а:*
 ```
 location /script.js {
-        alias /var/www/insect-catch-game.com/script.js;
+        alias /var/www/<github_profiles or insect-catch-game>/script.js;
     }
 ```
 ## Итоги
