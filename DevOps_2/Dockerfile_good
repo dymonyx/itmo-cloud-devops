@@ -1,2 +1,14 @@
-FROM ubuntu:latest
+FROM nginx:1.27.2-alpine
+
+WORKDIR /usr/share/nginx/html/
+
+RUN rm index.html
+
+COPY static/index.html .
+COPY script.js .
+COPY static/style.css .
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
 
