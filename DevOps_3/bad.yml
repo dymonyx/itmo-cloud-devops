@@ -1,0 +1,44 @@
+name: bad workflow
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet
+      with:
+        dotnet-version: '8.0.x' 
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore
+
+    - name: Test
+      run: dotnet test --no-build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Publish
+      run: dotnet publish -c Release -o output
+
+
