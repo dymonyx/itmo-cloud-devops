@@ -19,21 +19,21 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x' 
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore sem_1/test
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore sem_1/test
 
-    - name: Test
-      run: dotnet test --no-build
+    - name: Run static analysis
+      run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
 
   deploy:
     needs: build
@@ -42,15 +42,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
 
     - name: Publish
-      run: dotnet publish -c Release -o output
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output
 
 ```
 ## "Хороший" `CI/CD`
@@ -70,18 +70,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  DOTNET_VERSION: '8.0.x'
-
 jobs:
   build:
-    timeout-minutes: 15
+    timeout-minutes: 20
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [ubuntu-24.04, windows-2022]
-        dotnet: ${{ env.DOTNET_VERSION }}
 
     steps:
     - name: Checkout code
@@ -90,16 +86,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: ${{ vars.DOTNET_VERSION }}
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore sem_1/test
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore sem_1/test
 
-    - name: Test
-      run: dotnet test --no-build  
+    - name: Run static analysis
+      run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
 
   deploy:
     needs: build
@@ -113,13 +109,14 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: ${{ vars.DOTNET_VERSION }}
 
     - name: Publish
-      run: dotnet publish -c Release -o output
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output 
         
 
 ```
+
 Итак, в чём отличия..?
 ![](img/Pasted%20image%2020241019150543.png)
 ### triggers
@@ -144,13 +141,6 @@ concurrency:
   cancel-in-progress: true
 ```
 Добавление этого блока позволяет отменить предыдущей экземпляр воркфлоу, если уже запущен новый. Это позволяет экономить ресурсы и избегать конфликтов. *(в логах, опять же, будет легче разобраться)*
-### ENV
-```
-env:
-  DOTNET_VERSION: '8.0.x'
-```
-Объявление переменной окружения, описывающей версию `dotnet` делает ямлик понятнее и читабельней, а также в дальнейшем при изменении версии, её придётся поменять только в одном месте, что сэкономит немного времени.
-
 ### timeout
 ```
 timeout-minutes: 15
@@ -176,10 +166,10 @@ strategy:
 ```
 steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet
+      uses: actions/setup-dotnet@v3
 ```
 сменилось на 
 ```
@@ -191,6 +181,12 @@ steps:
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
 ```
 Тут мы фиксируем версии `actions` на определённых комитах, чтобы сделать билд стабильнее и, снова же, избежать непредвиденных ошибок, связанных с обновлением `actions`.
+## Запуск Github Actions
+[репа с проектом](https://github.com/dymonyx/csharp_course)
+### 'Плохой' CI/CD
+![](img/Pasted%20image%2020241201164314.png)
+### 'Хороший' CI/CD
+![](img/Pasted%20image%2020241201163110.png)
 ## Рефлексия
 ![](img/Pasted%20image%2020241019163012.png)
 

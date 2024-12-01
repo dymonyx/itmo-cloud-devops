@@ -8,21 +8,21 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x' 
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore sem_1/test
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore sem_1/test
 
-    - name: Test
-      run: dotnet test --no-build
+    - name: Run static analysis
+      run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
 
   deploy:
     needs: build
@@ -31,14 +31,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout
+      uses: actions/checkout@v3
 
     - name: Setup .NET
-      uses: actions/setup-dotnet
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
 
     - name: Publish
-      run: dotnet publish -c Release -o output
-
-
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output
