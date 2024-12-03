@@ -210,17 +210,21 @@ steps:
 Тут мы фиксируем версии `actions` на определённых комитах, чтобы сделать билд стабильнее и, снова же, избежать непредвиденных ошибок, связанных с обновлением `actions`.
 
 ### Кэширование и artifacts
-    - name: Cache .NET dependencies
+```
+	- name: Cache .NET dependencies
       uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
       with:
         path: ${{ github.workspace }}\.nuget\packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-
+```
+```
     - name: Upload build artifacts
-
+```
+```
     - name: Download build artifacts
+```
 Использование кэширования ускоряет сборку, так как при повторном запуске зависимости будут браться из кэша, а не устанавливаться заново. `Artifacts` позволяют сохранить результаты сборки между `job`'ами, чтобы не выполнять одно и то же несколько раз.
 ## Запуск Github Actions
 [репа с проектом](https://github.com/dymonyx/csharp_course)
