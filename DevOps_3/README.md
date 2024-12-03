@@ -35,6 +35,9 @@ jobs:
     - name: Run static analysis
       run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
 
+    - name: Publish
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -49,11 +52,12 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Publish
-      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output
+    - name: Deploy application
+      run: echo "deploy was successful"
 
 ```
-## "Хороший" `CI/CD`
+## "Хороший" CI/CD
+`
 Сразу покажу и исправленный ямлик:
 ```
 name: good workflow
@@ -87,6 +91,14 @@ jobs:
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
         dotnet-version: ${{ vars.DOTNET_VERSION }}
+        
+    - name: Cache .NET dependencies
+      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
+      with:
+        path: ${{ github.workspace }}\.nuget\packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
       run: dotnet restore sem_1/test
@@ -97,6 +109,15 @@ jobs:
     - name: Run static analysis
       run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
 
+    - name: Publish
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output 
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      with:
+        name: build-output-${{ matrix.os }}
+        path: output/
+
   deploy:
     needs: build
     runs-on: ubuntu-24.04
@@ -105,14 +126,20 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: build-output-ubuntu-24.04
 
     - name: Setup .NET
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
         dotnet-version: ${{ vars.DOTNET_VERSION }}
 
-    - name: Publish
-      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output 
+    - name: Deploy application
+      run: echo "deploy was successful"
+        
         
 
 ```
@@ -181,12 +208,26 @@ steps:
       uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
 ```
 Тут мы фиксируем версии `actions` на определённых комитах, чтобы сделать билд стабильнее и, снова же, избежать непредвиденных ошибок, связанных с обновлением `actions`.
+
+### Кэширование и artifacts
+    - name: Cache .NET dependencies
+      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
+      with:
+        path: ${{ github.workspace }}\.nuget\packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Upload build artifacts
+
+    - name: Download build artifacts
+Использование кэширования ускоряет сборку, так как при повторном запуске зависимости будут браться из кэша, а не устанавливаться заново. `Artifacts` позволяют сохранить результаты сборки между `job`'ами, чтобы не выполнять одно и то же несколько раз.
 ## Запуск Github Actions
 [репа с проектом](https://github.com/dymonyx/csharp_course)
 ### 'Плохой' CI/CD
-![](img/Pasted%20image%2020241201164314.png)
+![](img/Pasted%20image%2020241203191628.png)
 ### 'Хороший' CI/CD
-![](img/Pasted%20image%2020241201163110.png)
+![](img/Pasted%20image%2020241203191717.png)
 ## Рефлексия
 ![](img/Pasted%20image%2020241019163012.png)
 
