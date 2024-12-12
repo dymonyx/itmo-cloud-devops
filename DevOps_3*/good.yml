@@ -1,0 +1,95 @@
+name: good workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    timeout-minutes: 20
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+
+    steps:
+    - name: Bitwarden Get Secrets
+      uses: bitwarden/sm-action@92d1d6a4f26a89a8191c83ab531a53544578f182
+      with:
+        access_token: ${{ secrets.BITWARDEN_TOKEN }}
+        secrets: |
+          3c8a49b0-1c41-4950-a6e1-b24301728d13 > DOTNET_VERSION
+
+    - name: Checkout code
+      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Cache .NET dependencies
+      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
+      with:
+        path: ${{ github.workspace }}\.nuget\packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore sem_1/test
+
+    - name: Build
+      run: dotnet build --no-restore sem_1/test
+
+    - name: Run static analysis
+      run: dotnet format sem_1/test/testapp/testapp.csproj analyzers
+
+    - name: Publish
+      run: dotnet publish sem_1/test/testapp/testapp.csproj -c Release -o output 
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      with:
+        name: build-output-${{ matrix.os }}
+        path: output/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Bitwarden Get Secrets
+      uses: bitwarden/sm-action@92d1d6a4f26a89a8191c83ab531a53544578f182
+      with:
+        access_token: ${{ secrets.BITWARDEN_TOKEN }}
+        secrets: |
+          3c8a49b0-1c41-4950-a6e1-b24301728d13 > DOTNET_VERSION
+          
+    - name: Checkout code
+      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      
+    - name: Download build artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: build-output-ubuntu-24.04
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Deploy application
+      run: echo "deploy was successful"
+        
+
